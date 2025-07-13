@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  python-vscode:
+    build: .
+    container_name: vscode-ssh
+    ports:
+      - "2424:22"
+    volumes:
+      - ./keys/id_ed25519.pub:/home/dev/.ssh/authorized_keys:ro
+      - ./src:/home/dev/src
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - squid-proxy
+    networks:
+      - backend
+
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-server
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ROOT_PASSWORD1234%^&*
+      MYSQL_DATABASE: devdb
+      MYSQL_USER: devuser
+      MYSQL_PASSWORD: devpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - backend
+
+  squid-proxy:
+    image: sameersbn/squid:3.5.27-2
+    container_name: squid-proxy
+    volumes:
+      - ./squid/squid.conf:/etc/squid/squid.conf:ro
+    networks:
+      - backend
+
+volumes:
+  mysql-data:
+
+networks:
+  backend:
+    driver: bridge
