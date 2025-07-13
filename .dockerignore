@@ -1,0 +1,4 @@
+.git/
+.vscode-ssh/
+keys/
+**/__pycache__/
