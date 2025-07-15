@@ -1,8 +1,8 @@
 # nypl_menu_cleaning
 
-## Imstallation
-- download docker
-- download NYPL-menu dataset
+## Installation
+- download [docker](https://docs.docker.com/engine/install/ubuntu/)
+- download [NYPL-menu dataset](https://www.nypl.org/research/support/whats-on-the-menu)
 
 ## Setup
 - For users who want to host python containers, run
@@ -22,5 +22,5 @@
 ## Usage
 - profile dataset
     ```
-    python src/profile.py
+    python src/profile.py -p PATH_TO_DATASET_FOLDER
     ```

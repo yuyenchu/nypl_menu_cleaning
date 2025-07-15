@@ -1,6 +1,8 @@
 # custom ignores
 .vscode-ssh/
 keys/
+NYPL-menus/
+**/.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

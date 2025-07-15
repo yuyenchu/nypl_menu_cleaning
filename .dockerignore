@@ -1,4 +1,5 @@
 .git/
 .vscode-ssh/
 keys/
+NYPL-menus/
 **/__pycache__/
