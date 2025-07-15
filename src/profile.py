@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 def get_parser():
-    parser = argparse.ArgumentParser(description='options for training')
+    parser = argparse.ArgumentParser(description='options for profiling')
     parser.add_argument('-p', '--path',  help='path to the dataset folder', type=str, default='../data/NYPL-menus')
     return parser
 
