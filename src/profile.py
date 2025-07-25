@@ -12,36 +12,38 @@ def get_parser():
         "--path",
         help="path to the dataset folder",
         type=str,
-        default="../data/NYPL-menus",  # Default dataset path
+        default="../data/NYPL-menus",  # default folder if no path is given
     )
     return parser
 
 
 def count_missing_values(df):
-    # Count the number of missing values per column
+    # Count the number of missing (NaN) values in each column
     return df.isnull().sum()
 
 
-def detect_outliers_iqr(df):
-    # Detect outliers in numeric columns using the IQR method
-    outlier_info = {}
-    for col in df.select_dtypes(include="number").columns:
-        Q1 = df[col].quantile(0.25)  # First quartile
-        Q3 = df[col].quantile(0.75)  # Third quartile
-        IQR = Q3 - Q1  # Interquartile range
-        lower = Q1 - 1.5 * IQR  # Lower bound for outliers
-        upper = Q3 + 1.5 * IQR  # Upper bound for outliers
-        outliers = df[(df[col] < lower) | (df[col] > upper)]
-        outlier_info[col] = len(outliers)
-    return outlier_info
+def check_logical_issues(df):
+    # Check for suspicious values based on schema understanding
+    issues = {}
+
+    # Check if certain price columns contain zero values, which may not be valid
+    for col in ["lowest_price", "highest_price", "price"]:
+        if col in df.columns:
+            issues[f"{col}_is_zero"] = (df[col] == 0).sum()
+
+    # Check for duplicate IDs which could indicate data duplication
+    if "id" in df.columns:
+        issues["duplicated_id"] = df["id"].duplicated().sum()
+
+    return issues
 
 
 if __name__ == "__main__":
-    args = get_parser().parse_args()
+    args = get_parser().parse_args()  # Get folder path from arguments
     print("configs =", args)
 
     for f in glob.glob(os.path.join(args.path, "*.csv")):
-        print(f"\nFound file {f}, printing head:")
+        print(f"Found file {f}, printing head:")
         df = pd.read_csv(f)
         print(df.head(), "\n")
 
@@ -49,19 +51,19 @@ if __name__ == "__main__":
         missing = count_missing_values(df)
         print(missing, "\n")
 
-        print("Outliers:")
-        outlier_counts = detect_outliers_iqr(df)
-        for col, count in outlier_counts.items():
-            print(f"{col}: {count} outliers")
+        print("Logic-based issues (e.g., 0 prices or duplicated IDs):")
+        logic_issues = check_logical_issues(df)
+        for k, v in logic_issues.items():
+            print(f"{k}: {v}")
 
         print("-" * 50)
 
-        # Write all profiling results to a report file
+        # Save everything to a report file (append mode)
         with open("profiling_report.txt", "a") as f_out:
             f_out.write(f"\nFile: {f}\n")
             f_out.write("Missing values:\n")
             f_out.write(str(missing) + "\n")
-            f_out.write("Outliers:\n")
-            for col, count in outlier_counts.items():
-                f_out.write(f"{col}: {count} outliers\n")
+            f_out.write("Logic-based issues:\n")
+            for k, v in logic_issues.items():
+                f_out.write(f"{k}: {v}\n")
             f_out.write("-" * 50 + "\n")
