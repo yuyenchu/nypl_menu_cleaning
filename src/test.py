@@ -1,21 +1,26 @@
 import argparse
 import glob
-import io
 import logging
 import numpy as np
 import os
 import pandas as pd
+# import pytest
+import time
 import unittest
 from tqdm import tqdm
 
 from test_base import (
+    ENGINE, 
+    RED,
+    GREEN, 
+    RESET,
     Dish,
     Menu,
     MenuPage,
     MenuItem,
-    ENGINE, 
     LoggerTestRunner, 
-    TestTablesSchema
+    TestTablesSchema,
+    ConditionalFormatter,
 )
 from test_dish import TestDishYearValid, TestDisPriceValid
 
@@ -33,17 +38,15 @@ TEST_GROUPS = {
 
 
 def get_logger(fn='test.log'):
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG) 
     console_handler = logging.StreamHandler()
-    console_formatter = logging.Formatter('%(levelname)s - %(message)s')
+    console_formatter = ConditionalFormatter('%(levelname)s - %(message)s')
     console_handler.setFormatter(console_formatter)
     file_handler = logging.FileHandler(fn)
-    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_formatter = ConditionalFormatter('%(asctime)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(file_formatter)
+    logging.basicConfig(level=logging.DEBUG, handlers=[console_handler, file_handler])
 
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
+    logger = logging.getLogger(__name__)
     return logger
 
 def get_parser():
@@ -70,7 +73,7 @@ def get_parser():
     )
     return parser
 
-def load_selected_tests(selected_groups):
+def load_selected_tests(selected_groups, logger=None):
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     if ('all' in selected_groups):  # load all
@@ -79,9 +82,24 @@ def load_selected_tests(selected_groups):
     for group in selected_groups:
         test_classes = TEST_GROUPS.get(group, [])
         for test_class in test_classes:
-            suite.addTests(loader.loadTestsFromTestCase(test_class))
+            if logger:
+                logger.debug(f'Loading tests from: {test_class.__name__}')
+            # suite.addTest(test_class())
+            suite.addTest(loader.loadTestsFromTestCase(test_class))
 
     return suite
+
+def load_pytest_args(selected_groups, logger=None):
+    if ('all' in selected_groups):  # load all
+        return list(TEST_GROUPS.values())
+
+    args = []
+    for group in selected_groups:
+        test_fn = TEST_GROUPS.get(group, [])
+        if logger:
+            logger.debug(f'Loading tests from: {test_fn}')
+        args += test_fn
+    return args
 
 def insert_data(f, engine):
     df = pd.read_csv(f)
@@ -135,13 +153,25 @@ if __name__ == "__main__":
     
     suite = load_selected_tests(args.tests)
     runner = LoggerTestRunner(logger, verbosity=2)
+    logger.info('Starting test')
+    logger.info('='*60, extra={'simple': True})
+    startTime = time.perf_counter()
+    # pytest_args = ['-v', '-s'] + load_pytest_args(args.tests)
     try:
         result = runner.run(suite)
+        # result = pytest.main(pytest_args)
     except KeyboardInterrupt:
         logger.warning('Test run interrupted by KeyboardInterrupt')
         exit()
-
+    stopTime = time.perf_counter()
+    timeTaken = stopTime - startTime
     # Summary
-    logger.info(f"Tests run: {result.testsRun}")
-    logger.info(f"Failures: {len(result.failures)}")
-    logger.info(f"Errors: {len(result.errors)}")
+    logger.info('='*60, extra={'simple': True})
+    success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
+    logger.info(f'Tests run: {result.testsRun}')
+    logger.info(f'Success: {GREEN}{success_count}{RESET}')
+    logger.info(f'Failures: {RED}{fail_count}{RESET}')
+    logger.info(f'Errors: {RED}{error_count}{RESET}')
+    logger.info(f'Pass rate: {(success_count/result.testsRun*100):.2f}%')
+    logger.info(f'Runtime: {timeTaken:.4f}s')
+    logger.info('\n\n', extra={'simple': True})

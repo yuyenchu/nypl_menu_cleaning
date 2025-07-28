@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 import unittest
 from sqlalchemy import (
     create_engine, 
@@ -21,9 +23,22 @@ USERNAME = 'devuser'
 PASSWORD = 'devpass'
 # create a SQLAlchemy engine
 ENGINE = create_engine(f'mysql+mysqlconnector://{USERNAME}:{PASSWORD}@mysql/devdb')
+RED     = '\033[31m'
+GREEN   = '\033[32m'
+YELLOW  = '\033[33m'
+BLUE    = '\033[34m'
+MAGENTA = '\033[35m'
+CYAN    = '\033[36m'
+RESET   = '\033[0m'
 
 Base = declarative_base()
 logger = logging.getLogger(__name__)
+class ConditionalFormatter(logging.Formatter):
+    def format(self, record):
+        if hasattr(record, 'simple') and record.simple:
+            return record.getMessage()
+        else:
+            return super().format(record)
 
 class Dish(Base):
     __tablename__ = 'Dish'
@@ -86,7 +101,7 @@ class MenuPage(Base):
     id = Column(Integer, primary_key=True)
     menu_id = Column(Integer)  # ForeignKey('Menu.id'), not added for later testcases
     page_number = Column(Integer)
-    image_id = Column(Integer)
+    image_id = Column(Text)
     full_height = Column(Integer)
     full_width = Column(Integer)
     uuid = Column(String(36))  # UUIDs are typically 36 chars
@@ -95,49 +110,62 @@ class SQLTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.engine = ENGINE
+        cls.logger = logger
+        cls.logger.info(f'===> {MAGENTA}{cls.__name__}{RESET} <===')
+        cls.clsStartTime = time.time()
 
     @classmethod
     def tearDownClass(cls):
         cls.engine.dispose() # Dispose of the engine
+        t = time.time() - cls.clsStartTime
+        cls.logger.info(f'{MAGENTA}{cls.__name__}{RESET} Finish: {t:.4f}s')
     
     def setUp(self):
         # Create a new session for each test
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+        self.startTime = time.time()
 
     def tearDown(self):
         # Rollback and close the session after each test
         self.session.rollback() # Ensure changes are not persisted between tests
         self.session.close()
+        t = time.time() - self.startTime
+        self.logger.info(f'Finish: {t:.4f}s')
 
 class LoggerTestResult(unittest.TextTestResult):
     def __init__(self, logger, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logger
+        self.success = []
 
     def startTest(self, test):
         super().startTest(test)
-        self.logger.info(f"START: {test}")
+        self.logger.info('', extra={'simple': True})
+        self.logger.info(f'START => {CYAN}{test._testMethodName}{RESET}')
 
     def addSuccess(self, test):
         super().addSuccess(test)
-        self.logger.info(f"PASS: {test}")
+        self.success.append(test)
+        self.logger.info(f'Result: {GREEN}PASS{RESET}')
 
     def addFailure(self, test, err):
         super().addFailure(test, err)
-        self.logger.error(f"FAIL: {test}\n{self._exc_info_to_string(err, test)}")
+        self.logger.info(f'Result: {RED}FAIL{RESET}\n{self._exc_info_to_string(err, test)}')
 
     def addError(self, test, err):
         super().addError(test, err)
-        self.logger.error(f"ERROR: {test}\n{self._exc_info_to_string(err, test)}")
+        self.logger.error(f'ERROR: {test._testMethodName}\n{self._exc_info_to_string(err, test)}')
 
     def addSkip(self, test, reason):
         super().addSkip(test, reason)
-        self.logger.warning(f"SKIP: {test} - {reason}")
+        self.logger.warning(f'SKIP: {test._testMethodName} - {reason}')
 
 class LoggerTestRunner(unittest.TextTestRunner):
     def __init__(self, logger, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        # kwargs['stream'] = open(os.devnull, 'w')
+        # print(args, kwargs)
+        super().__init__(*args, **kwargs, stream=open(os.devnull, 'w'))
         self.logger = logger
 
     def _makeResult(self):
@@ -180,9 +208,9 @@ class TestTablesSchema(SQLTestCase):
             .filter(Menu.id == None)
             .all()
         )
-        self.assertFalse(invalid_pages, f'Found MenuPage rows with invalid menu_id: {[p.id for p in invalid_pages]}')
-        if (invalid_pages):
-            logger.error('MenuPage invalid menu_id rows: %s', [p.id for p in invalid_pages])
+        self.assertEqual(len(invalid_pages), 0, 'Found MenuPage rows with invalid menu_id')
+        # if (invalid_pages):
+        #     self.logger.error(f'MenuPage invalid menu_id rows: {[i.id for i in invalid_pages]}')
 
     def test_menu_item_dish_id_fk(self):
         ### Check MenuItem.dish_id references existing Dish.id
@@ -192,9 +220,9 @@ class TestTablesSchema(SQLTestCase):
             .filter(Dish.id == None)
             .all()
         )
-        self.assertFalse(invalid_items, f'Found MenuItem rows with invalid dish_id: {[i.id for i in invalid_items]}')
-        if (invalid_items):
-            logger.error('MenuItem invalid dish_id rows: %s', [i.id for i in invalid_items])
+        self.assertEqual(len(invalid_items), 0, 'Found MenuItem rows with invalid dish_id')
+        # if (invalid_items):
+        #      self.logger.error(f'MenuItem invalid dish_id rows: {[i.id for i in invalid_items]}')
 
     def test_menu_item_menu_page_id_fk(self):
         ### Check MenuItem.menu_page_id references existing MenuPage.id
@@ -204,6 +232,6 @@ class TestTablesSchema(SQLTestCase):
             .filter(MenuPage.id == None)
             .all()
         )
-        self.assertFalse(invalid_items, f'Found MenuItem rows with invalid menu_page_id: {[i.id for i in invalid_items]}')
-        if (invalid_items):
-            logger.error('MenuItem invalid menu_page_id rows: %s', [i.id for i in invalid_items])
+        self.assertEqual(len(invalid_items), 0, 'Found MenuItem rows with invalid menu_page_id')
+        # if (invalid_items):
+        #      self.logger.error(f'MenuItem invalid menu_page_id rows: {[i.id for i in invalid_items]}')
