@@ -2,3 +2,5 @@ pandas
 scikit-learn
 polyfuzz
 textdistance
+mysql-connector-python
+sqlalchemy
