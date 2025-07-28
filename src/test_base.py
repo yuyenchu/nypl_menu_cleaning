@@ -50,6 +50,7 @@ class Menu(Base):
     name = Column(Text)
     sponsor = Column(Text)
     event = Column(Text)
+    venue = Column(Text)
     place = Column(Text)
     physical_description = Column(Text)
     occasion = Column(Text)
@@ -155,7 +156,7 @@ class TestTablesSchema(SQLTestCase):
         inspector = inspect(self.engine)
         self.assertTrue(inspector.has_table('Menu'), 'Table "Menu" does not exist')
         rows = self.session.scalar(select(func.count()).select_from(Menu))
-        self.assertEqual(rows, 17547)
+        self.assertEqual(rows, 17545)
         
     def test_menu_page(self):
         ### Check if 'MenuPage' table exists
@@ -180,7 +181,7 @@ class TestTablesSchema(SQLTestCase):
             .all()
         )
         self.assertFalse(invalid_pages, f'Found MenuPage rows with invalid menu_id: {[p.id for p in invalid_pages]}')
-        if invalid_pages:
+        if (invalid_pages):
             logger.error('MenuPage invalid menu_id rows: %s', [p.id for p in invalid_pages])
 
     def test_menu_item_dish_id_fk(self):
@@ -192,7 +193,7 @@ class TestTablesSchema(SQLTestCase):
             .all()
         )
         self.assertFalse(invalid_items, f'Found MenuItem rows with invalid dish_id: {[i.id for i in invalid_items]}')
-        if invalid_items:
+        if (invalid_items):
             logger.error('MenuItem invalid dish_id rows: %s', [i.id for i in invalid_items])
 
     def test_menu_item_menu_page_id_fk(self):
@@ -204,5 +205,5 @@ class TestTablesSchema(SQLTestCase):
             .all()
         )
         self.assertFalse(invalid_items, f'Found MenuItem rows with invalid menu_page_id: {[i.id for i in invalid_items]}')
-        if invalid_items:
+        if (invalid_items):
             logger.error('MenuItem invalid menu_page_id rows: %s', [i.id for i in invalid_items])
