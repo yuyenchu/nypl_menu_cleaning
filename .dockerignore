@@ -3,3 +3,9 @@
 keys/
 NYPL-menus/
 **/__pycache__/
+**/.DS_Store
+**/*.npy
+**/*.txt
+**/*.log
+**/*.sql
+**/*.json

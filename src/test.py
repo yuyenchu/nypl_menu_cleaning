@@ -51,7 +51,7 @@ def get_parser():
         '--tests',
         nargs='*',
         metavar='TEST',
-        help=f'Specify which test groups to run, options: {list(TEST_GROUPS.keys())}',
+        help=f'Specify which test groups to run, options: {['all']+list(TEST_GROUPS.keys())}',
         default=[],
     )
     return parser

@@ -6,6 +6,7 @@ NYPL-menus/
 **/*.npy
 **/*.txt
 **/*.sql
+**/*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
