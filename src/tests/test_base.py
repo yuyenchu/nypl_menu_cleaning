@@ -1,3 +1,4 @@
+import contextvars
 import json
 import logging
 import os
@@ -5,6 +6,7 @@ import time
 import unittest
 from sqlalchemy import (
     create_engine, 
+    event,
     func, 
     select,
     inspect, 
@@ -34,6 +36,23 @@ RESET   = '\033[0m'
 
 Base = declarative_base()
 logger = logging.getLogger(__name__)
+_current_test_id = contextvars.ContextVar('current_test_id', default='UNKNOWN')
+
+def register_current_test(testcase_instance):
+    # Registers the current test case ID from a unittest.TestCase instance
+    _current_test_id.set(testcase_instance.id())
+
+def setup_query_logger(engine, file_path='queries.txt'):
+    # Always overwrite the file at start
+    with open(file_path, 'w') as f:
+        f.write('--- SQL Query Log ---\n')
+
+    @event.listens_for(engine, 'before_cursor_execute')
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        test_id = _current_test_id.get()
+        with open(file_path, 'a') as f:
+            f.write(f'\n## Test: {test_id}\nSQL: {statement}\nParams: {parameters}\n')
+
 class ConditionalFormatter(logging.Formatter):
     def format(self, record):
         if hasattr(record, 'simple') and record.simple:
@@ -119,6 +138,7 @@ class SQLTestCase(unittest.TestCase):
         cls.engine = ENGINE
         cls.logger = logger
         cls.logger.info(f'===> {MAGENTA}{cls.__name__}{RESET} <===')
+        setup_query_logger(cls.engine)
         cls.clsStartTime = time.time()
         cls.failedIds = dict()
 
@@ -138,6 +158,7 @@ class SQLTestCase(unittest.TestCase):
         self.fails = set()
         self.delay_asserts = []
         self.failedIds[self._testMethodName] = self.fails
+        register_current_test(self)
 
     def tearDown(self):
         # Rollback and close the session after each test
