@@ -30,3 +30,21 @@ class TestMenuPageDuplicate(SQLTestCase):
         )
 
         self.assertEmpty(res2, 'Found MenuPage rows with duplicated uuid')
+    
+    def test_menu_id_page_number(self):
+        res1 = (
+            self.session.query(MenuPage.menu_id, MenuPage.page_number)
+            .group_by(MenuPage.menu_id, MenuPage.page_number)
+            .having(func.count('*') > 1)
+            .subquery()
+        )
+        res2 = (
+            self.session.query(MenuPage)
+            .join(
+                res1,
+                (MenuPage.menu_id == res1.c.menu_id) &
+                (MenuPage.page_number == res1.c.page_number)
+            )
+            .all()
+        )
+        self.assertEmpty(res2, 'Found MenuItem rows with created_at later than updated_at')

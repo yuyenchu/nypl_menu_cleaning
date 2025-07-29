@@ -24,8 +24,8 @@ from test_base import (
 )
 from test_dish import TestDishYearValid, TestDisPriceValid
 from test_menu import TestMenuNumberValid
-from test_menupage import TestMenuPageDuplicate, TestMenuPageNumberValid
-from test_menuitem import TestMenuItemNumberValid
+from test_menupage import TestMenuPageNumberValid, TestMenuPageDuplicate
+from test_menuitem import TestMenuItemNumberValid, TestMenuItemDateValid
 
 TABLE_MAP = {
     'Dish': Dish,
@@ -37,8 +37,8 @@ TEST_GROUPS = {
     'schema': [TestTablesSchema],
     'dish': [TestDishYearValid, TestDisPriceValid],
     'menu': [TestMenuNumberValid],
-    'menupage': [TestMenuPageDuplicate, TestMenuPageNumberValid],
-    'menuitem': [TestMenuItemNumberValid],
+    'menupage': [TestMenuPageNumberValid, TestMenuPageDuplicate],
+    'menuitem': [TestMenuItemNumberValid, TestMenuItemDateValid],
 }
 
 
