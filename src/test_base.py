@@ -127,6 +127,7 @@ class SQLTestCase(unittest.TestCase):
         cls.engine.dispose() # Dispose of the engine
         t = time.time() - cls.clsStartTime
         cls.logger.info(f'{MAGENTA}{cls.__name__}{RESET} Finish: {t:.4f}s')
+        cls.logger.info('='*70, extra={'simple': True})
         with open(f'{cls.__name__}_FailedID.json', 'w') as f:
             json.dump(cls.failedIds, f, cls=SetEncoder)
     def setUp(self):

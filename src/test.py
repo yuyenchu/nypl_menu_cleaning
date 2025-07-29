@@ -158,7 +158,7 @@ if __name__ == "__main__":
     
     suite = load_selected_tests(args.tests)
     runner = LoggerTestRunner(logger, verbosity=2)
-    logger.info('Starting test')
+    logger.info('        Starting Test')
     logger.info('='*60, extra={'simple': True})
     startTime = time.perf_counter()
     # pytest_args = ['-v', '-s'] + load_pytest_args(args.tests)
@@ -171,12 +171,14 @@ if __name__ == "__main__":
     stopTime = time.perf_counter()
     timeTaken = stopTime - startTime
     # Summary
-    logger.info('='*60, extra={'simple': True})
+    logger.info('        Final Result')
+    logger.info('='*70, extra={'simple': True})
     success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
     logger.info(f'Tests run: {result.testsRun}')
     logger.info(f'Success: {GREEN}{success_count}{RESET}')
     logger.info(f'Failure: {RED}{fail_count}{RESET}')
     logger.info(f'Errors: {RED}{error_count}{RESET}')
-    logger.info(f'Pass rate: {(success_count/result.testsRun*100):.2f}%')
-    logger.info(f'Runtime: {timeTaken:.4f}s')
-    logger.info('\n\n', extra={'simple': True})
+    logger.info(f'Pass Rate: {(success_count/result.testsRun*100):.2f}%')
+    logger.info(f'Total Runtime: {timeTaken:.4f}s')
+    logger.info('='*70, extra={'simple': True})
+    logger.info('\n', extra={'simple': True})
