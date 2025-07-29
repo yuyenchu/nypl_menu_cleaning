@@ -1,6 +1,6 @@
 from sqlalchemy import func
 
-from test_base import SQLTestCase, MenuItem
+from .test_base import SQLTestCase, MenuItem
 
 class TestMenuItemNumberValid(SQLTestCase):
     def test_price(self):

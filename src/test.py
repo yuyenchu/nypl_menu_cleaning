@@ -9,38 +9,16 @@ import time
 import unittest
 from tqdm import tqdm
 
-from test_base import (
+from tests import (
     ENGINE, 
     RED,
     GREEN, 
     RESET,
-    Dish,
-    Menu,
-    MenuPage,
-    MenuItem,
+    TABLE_MAP,
+    TEST_GROUPS,
     LoggerTestRunner, 
-    TestTablesSchema,
     ConditionalFormatter,
 )
-from test_dish import TestDishYearValid, TestDisPriceValid
-from test_menu import TestMenuNumberValid
-from test_menupage import TestMenuPageNumberValid, TestMenuPageDuplicate
-from test_menuitem import TestMenuItemNumberValid, TestMenuItemDateValid
-
-TABLE_MAP = {
-    'Dish': Dish,
-    'Menu': Menu,
-    'MenuPage': MenuPage,
-    'MenuItem': MenuItem,
-}
-TEST_GROUPS = {
-    'schema': [TestTablesSchema],
-    'dish': [TestDishYearValid, TestDisPriceValid],
-    'menu': [TestMenuNumberValid],
-    'menupage': [TestMenuPageNumberValid, TestMenuPageDuplicate],
-    'menuitem': [TestMenuItemNumberValid, TestMenuItemDateValid],
-}
-
 
 def get_logger(fn='test.log'):
     console_handler = logging.StreamHandler()

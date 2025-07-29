@@ -1,6 +1,6 @@
 from sqlalchemy import text
 
-from test_base import SQLTestCase, Menu
+from .test_base import SQLTestCase, Menu
 
 class TestMenuNumberValid(SQLTestCase):
     def test_page_count(self):

@@ -1,6 +1,6 @@
 from sqlalchemy import func
 
-from test_base import SQLTestCase, MenuPage
+from .test_base import SQLTestCase, MenuPage
 
 class TestMenuPageNumberValid(SQLTestCase):
     def test_page_number(self):

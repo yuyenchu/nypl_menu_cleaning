@@ -1,4 +1,4 @@
-from test_base import SQLTestCase, Dish
+from .test_base import SQLTestCase, Dish
 
 class TestDishYearValid(SQLTestCase):
     def test_first_appeared(self):
