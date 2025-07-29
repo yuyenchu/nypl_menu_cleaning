@@ -23,6 +23,9 @@ from test_base import (
     ConditionalFormatter,
 )
 from test_dish import TestDishYearValid, TestDisPriceValid
+from test_menu import TestMenuNumberValid
+from test_menupage import TestMenuPageDuplicate, TestMenuPageNumberValid
+from test_menuitem import TestMenuItemNumberValid
 
 TABLE_MAP = {
     'Dish': Dish,
@@ -33,7 +36,9 @@ TABLE_MAP = {
 TEST_GROUPS = {
     'schema': [TestTablesSchema],
     'dish': [TestDishYearValid, TestDisPriceValid],
-    # 'menu': [TestMenuSomethingValid],
+    'menu': [TestMenuNumberValid],
+    'menupage': [TestMenuPageDuplicate, TestMenuPageNumberValid],
+    'menuitem': [TestMenuItemNumberValid],
 }
 
 
@@ -170,7 +175,7 @@ if __name__ == "__main__":
     success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
     logger.info(f'Tests run: {result.testsRun}')
     logger.info(f'Success: {GREEN}{success_count}{RESET}')
-    logger.info(f'Failures: {RED}{fail_count}{RESET}')
+    logger.info(f'Failure: {RED}{fail_count}{RESET}')
     logger.info(f'Errors: {RED}{error_count}{RESET}')
     logger.info(f'Pass rate: {(success_count/result.testsRun*100):.2f}%')
     logger.info(f'Runtime: {timeTaken:.4f}s')
