@@ -21,6 +21,22 @@
 
 ## Usage
 - profile dataset
-    ```
+    ```shell
     python src/profile.py -p PATH_TO_DATASET_FOLDER
+    ```
+- create and insert all data
+    ```shell
+    python src/test.py -p PATH_TO_DATASET_FOLDER --reset
+    ls *.npy  # row ids of failed insert to table
+    cat test.log # the log output of the create and insert
+    ```
+- run all test
+    ```shell
+    python src/test.py -p PATH_TO_DATASET_FOLDER --tests all
+    ls *.json  # row ids of failed testcases
+    cat test.log # the log output of the test
+    ```
+    or alternatively use `pytest`
+    ```shell
+    pytest src/tests
     ```
