@@ -42,6 +42,12 @@ def get_parser():
         default='../data/NYPL-menus',  # Default dataset path
     )
     parser.add_argument(
+        '-o', '--outdir',
+        help='path to the output directory',
+        type=str,
+        default='.', 
+    )
+    parser.add_argument(
         '--reset',
         nargs='*',
         metavar='TABLE',
@@ -56,7 +62,7 @@ def get_parser():
     )
     return parser
 
-def load_selected_tests(selected_groups, logger=None):
+def load_selected_tests(selected_groups, output_dir='.', logger=None):
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     if ('all' in selected_groups):  # load all
@@ -68,6 +74,7 @@ def load_selected_tests(selected_groups, logger=None):
             if logger:
                 logger.debug(f'Loading tests from: {test_class.__name__}')
             # suite.addTest(test_class())
+            test_class.output_dir = output_dir
             suite.addTest(loader.loadTestsFromTestCase(test_class))
 
     return suite
@@ -84,7 +91,7 @@ def load_pytest_args(selected_groups, logger=None):
         args += test_fn
     return args
 
-def insert_data(f, engine):
+def insert_data(f, engine, output_dir='.', logger=None):
     df = pd.read_csv(f)
     table_name = os.path.splitext(os.path.basename(f))[0]
     failed_rows = []
@@ -99,7 +106,7 @@ def insert_data(f, engine):
             pd.DataFrame([row]).to_sql(table_name, con=engine, if_exists='append', index=False)
         except KeyboardInterrupt:
             logger.error(f'User interrupted at row {idx}')
-            np.save(f'{table_name}_failed.npy', np.array(failed_rows))
+            np.save(os.path.join(output_dir, f'{table_name}_failed.npy'), np.array(failed_rows))
             exit()
         except Exception as e:
             logger.error(f'Failed to insert row {idx} - Error: {e}')
@@ -111,13 +118,18 @@ def insert_data(f, engine):
     return df, failed_rows
 
 if __name__ == "__main__":
-    logger = get_logger()
     args = get_parser().parse_args()
     print('Configs =', args)
+
+    # make output folder
+    os.makedirs(args.outdir, exist_ok=True)
+    assert os.path.isdir(args.outdir), f'output path does not exist or is not directory: {args.outdir}'
+    logger = get_logger(os.path.join(args.outdir, 'test.log'))
+
+    # table create/drop/insert logic
     if (args.reset is not None):
         reset_tables = args.reset if args.reset else TABLE_MAP.keys()
         logger.info(f'Resetting tables: {list(reset_tables)}')
-
         # Reflect base metadata for partial drop
         for table in reset_tables:
             model = TABLE_MAP.get(table)
@@ -127,14 +139,14 @@ if __name__ == "__main__":
                 model.__table__.create(ENGINE, checkfirst=True)
             else:
                 logger.warning(f'Unknown table: {table}, skipping...')
-
         # Insert data only for reset tables
         for f in glob.glob(os.path.join(args.path, "*.csv")):
             table_name = os.path.splitext(os.path.basename(f))[0]
             if (table_name in reset_tables):
-                insert_data(f, ENGINE)
+                insert_data(f, ENGINE, args.outdir, logger)
     
-    suite = load_selected_tests(args.tests)
+    # loading testcases
+    suite = load_selected_tests(args.tests, args.outdir)
     runner = LoggerTestRunner(logger, verbosity=2)
     logger.info('        Starting Test')
     logger.info('='*60, extra={'simple': True})
@@ -148,10 +160,10 @@ if __name__ == "__main__":
         exit()
     stopTime = time.perf_counter()
     timeTaken = stopTime - startTime
-    # Summary
+    success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
+    # print summary
     logger.info('        Final Result')
     logger.info('='*70, extra={'simple': True})
-    success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
     logger.info(f'Tests run: {result.testsRun}')
     logger.info(f'Success: {GREEN}{success_count}{RESET}')
     logger.info(f'Failure: {RED}{fail_count}{RESET}')

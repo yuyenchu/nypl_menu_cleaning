@@ -44,7 +44,7 @@ def register_current_test(testcase_instance):
 
 def setup_query_logger(engine, file_path='queries.txt'):
     # Always overwrite the file at start
-    with open(file_path, 'w') as f:
+    with open(file_path, 'w+') as f:
         f.write('--- SQL Query Log ---\n')
 
     @event.listens_for(engine, 'before_cursor_execute')
@@ -133,12 +133,14 @@ class MenuPage(Base):
     uuid = Column(String(36))  # UUIDs are typically 36 chars
 
 class SQLTestCase(unittest.TestCase):
+    output_dir = '.'
+
     @classmethod
     def setUpClass(cls):
         cls.engine = ENGINE
         cls.logger = logger
-        cls.logger.info(f'===> {MAGENTA}{cls.__name__}{RESET} <===')
-        setup_query_logger(cls.engine)
+        cls.logger.info(f'===> {MAGENTA}{cls.__name__}{RESET} <===, {cls.output_dir}')
+        setup_query_logger(cls.engine, os.path.join(cls.output_dir, 'queries.txt'))
         cls.clsStartTime = time.time()
         cls.failedIds = dict()
 
@@ -148,8 +150,9 @@ class SQLTestCase(unittest.TestCase):
         t = time.time() - cls.clsStartTime
         cls.logger.info(f'{MAGENTA}{cls.__name__}{RESET} Finish: {t:.4f}s')
         cls.logger.info('='*70, extra={'simple': True})
-        with open(f'{cls.__name__}_FailedID.json', 'w') as f:
+        with open(os.path.join(cls.output_dir, f'{cls.__name__}_FailedID.json'), 'w+') as f:
             json.dump(cls.failedIds, f, cls=SetEncoder)
+
     def setUp(self):
         # Create a new session for each test
         Session = sessionmaker(bind=self.engine)
@@ -183,6 +186,7 @@ class SQLTestCase(unittest.TestCase):
             self.fails.update([f.id for f in fails])
         else:
             self.add(fails)
+
 class LoggerTestResult(unittest.TextTestResult):
     def __init__(self, logger, *args, **kwargs):
         super().__init__(*args, **kwargs)
