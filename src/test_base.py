@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -40,6 +41,12 @@ class ConditionalFormatter(logging.Formatter):
         else:
             return super().format(record)
 
+class SetEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
+    
 class Dish(Base):
     __tablename__ = 'Dish'
 
@@ -113,18 +120,23 @@ class SQLTestCase(unittest.TestCase):
         cls.logger = logger
         cls.logger.info(f'===> {MAGENTA}{cls.__name__}{RESET} <===')
         cls.clsStartTime = time.time()
+        cls.failedIds = dict()
 
     @classmethod
     def tearDownClass(cls):
         cls.engine.dispose() # Dispose of the engine
         t = time.time() - cls.clsStartTime
         cls.logger.info(f'{MAGENTA}{cls.__name__}{RESET} Finish: {t:.4f}s')
-    
+        with open(f'{cls.__name__}_FailedID.json', 'w') as f:
+            json.dump(cls.failedIds, f, cls=SetEncoder)
     def setUp(self):
         # Create a new session for each test
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.startTime = time.time()
+        self.fails = set()
+        self.delay_asserts = []
+        self.failedIds[self._testMethodName] = self.fails
 
     def tearDown(self):
         # Rollback and close the session after each test
@@ -133,6 +145,22 @@ class SQLTestCase(unittest.TestCase):
         t = time.time() - self.startTime
         self.logger.info(f'Finish: {t:.4f}s')
 
+    def _callTestMethod(self, method):
+        super()._callTestMethod(method)
+        for asserter, args in self.delay_asserts:
+            asserter(*args)
+
+    def assertEmpty(self, res, msg=None):
+        self.recordFails(res)
+        self.delay_asserts.append((self.assertEqual, (len(res), 0, msg)))
+
+    def recordFails(self, fails):
+        if (not fails):
+            return
+        if (isinstance(fails, list)):
+            self.fails.update([f.id for f in fails])
+        else:
+            self.add(fails)
 class LoggerTestResult(unittest.TextTestResult):
     def __init__(self, logger, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -163,8 +191,6 @@ class LoggerTestResult(unittest.TextTestResult):
 
 class LoggerTestRunner(unittest.TextTestRunner):
     def __init__(self, logger, *args, **kwargs):
-        # kwargs['stream'] = open(os.devnull, 'w')
-        # print(args, kwargs)
         super().__init__(*args, **kwargs, stream=open(os.devnull, 'w'))
         self.logger = logger
 
@@ -177,28 +203,28 @@ class TestTablesSchema(SQLTestCase):
         inspector = inspect(self.engine)
         self.assertTrue(inspector.has_table('Dish'), 'Table "Dish" does not exist')
         rows = self.session.scalar(select(func.count()).select_from(Dish))
-        self.assertEqual(rows, 423397)
+        self.assertEqual(rows, 423397, 'Dish rows missing')
         
     def test_menu(self):
         ### Check if 'Menu' table exists
         inspector = inspect(self.engine)
         self.assertTrue(inspector.has_table('Menu'), 'Table "Menu" does not exist')
         rows = self.session.scalar(select(func.count()).select_from(Menu))
-        self.assertEqual(rows, 17545)
+        self.assertEqual(rows, 17545, 'Menu rows missing')
         
     def test_menu_page(self):
         ### Check if 'MenuPage' table exists
         inspector = inspect(self.engine)
         self.assertTrue(inspector.has_table('MenuPage'), 'Table "MenuPage" does not exist')
         rows = self.session.scalar(select(func.count()).select_from(MenuPage))
-        self.assertEqual(rows, 66937)
+        self.assertEqual(rows, 66937, 'MenuPage rows missing')
         
     def test_menu_item(self):
         ### Check if 'MenuItem' table exists
         inspector = inspect(self.engine)
         self.assertTrue(inspector.has_table('MenuItem'), 'Table "MenuItem" does not exist')
         rows = self.session.scalar(select(func.count()).select_from(MenuItem))
-        self.assertEqual(rows, 1332726)
+        self.assertEqual(rows, 1332726, 'MenuItem rows missing')
         
     def test_menu_page_menu_id_fk(self):
         ### Check MenuPage.menu_id references existing Menu.id
@@ -208,9 +234,7 @@ class TestTablesSchema(SQLTestCase):
             .filter(Menu.id == None)
             .all()
         )
-        self.assertEqual(len(invalid_pages), 0, 'Found MenuPage rows with invalid menu_id')
-        # if (invalid_pages):
-        #     self.logger.error(f'MenuPage invalid menu_id rows: {[i.id for i in invalid_pages]}')
+        self.assertEmpty(invalid_pages, 'Found MenuPage rows with invalid menu_id')
 
     def test_menu_item_dish_id_fk(self):
         ### Check MenuItem.dish_id references existing Dish.id
@@ -220,9 +244,7 @@ class TestTablesSchema(SQLTestCase):
             .filter(Dish.id == None)
             .all()
         )
-        self.assertEqual(len(invalid_items), 0, 'Found MenuItem rows with invalid dish_id')
-        # if (invalid_items):
-        #      self.logger.error(f'MenuItem invalid dish_id rows: {[i.id for i in invalid_items]}')
+        self.assertEmpty(invalid_items, 'Found MenuItem rows with invalid dish_id')
 
     def test_menu_item_menu_page_id_fk(self):
         ### Check MenuItem.menu_page_id references existing MenuPage.id
@@ -232,6 +254,4 @@ class TestTablesSchema(SQLTestCase):
             .filter(MenuPage.id == None)
             .all()
         )
-        self.assertEqual(len(invalid_items), 0, 'Found MenuItem rows with invalid menu_page_id')
-        # if (invalid_items):
-        #      self.logger.error(f'MenuItem invalid menu_page_id rows: {[i.id for i in invalid_items]}')
+        self.assertEmpty(invalid_items, 'Found MenuItem rows with invalid menu_page_id')
