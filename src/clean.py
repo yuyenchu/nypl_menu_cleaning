@@ -46,28 +46,46 @@ def clean_data(df, filename, failed_ids_files):
 def save_data(df, output_path):
     df.to_csv(output_path, index=False)
 
-#if you want to run this on your local maschine, please change the input_folder and output_folder to your local path
+# if you want to run this on your local maschine, please change the input_folder, test_folder and output_folder to your local path
 def main():
     input_folder = '/Users/xian_zhao/Desktop/cs513/NYPL-menus'
     output_folder = '/Users/xian_zhao/Desktop/cs513/cleaned_data'
-# if the output folder does not exist, create it
-    failed_ids_files = [
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestMenuItemNumberValid_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestDishYearValid_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestDisPriceValid_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestMenuItemDateValid_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestMenuPageDuplicate_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestMenuPageNumberValid_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestTablesSchema_FailedID.json',
-        '/Users/xian_zhao/Desktop/cs513/test_output_dirty/TestMenuItemNumberValid_FailedID.json',
-    ]
+    test_folder = '/Users/xian_zhao/Desktop/cs513/test_output_dirty'
+
+    # if the output folder does not exist, create it
+    os.makedirs(output_folder, exist_ok=True)
+
+    # group test files by table so that we only apply the relevant ones
+    failed_ids_by_table = {
+        "Dish": [
+            "TestDishYearValid_FailedID.json",
+            "TestDisPriceValid_FailedID.json"
+        ],
+        "Menu": [
+            "TestTablesSchema_FailedID.json"
+        ],
+        "MenuPage": [
+            "TestMenuPageDuplicate_FailedID.json",
+            "TestMenuPageNumberValid_FailedID.json"
+        ],
+        "MenuItem": [
+            "TestMenuItemNumberValid_FailedID.json",
+            "TestMenuItemDateValid_FailedID.json"
+        ]
+    }
 
     for file_name in os.listdir(input_folder):
         if file_name.endswith('.csv'):
             file_path = os.path.join(input_folder, file_name)
             print(f"Cleaning {file_name}...")
 
+            table_name = file_name.replace(".csv", "")
             df = load_data(file_path)
+
+            # Load only relevant failed ID files
+            relevant_tests = failed_ids_by_table.get(table_name, [])
+            failed_ids_files = [os.path.join(test_folder, f) for f in relevant_tests]
+
             cleaned_df = clean_data(df, file_name, failed_ids_files)
 
             output_file_path = os.path.join(output_folder, f"cleaned_{file_name}")
