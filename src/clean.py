@@ -1,10 +1,12 @@
-# @begin imports
+# @begin main
+# @in NYPL-menus/*.csv @AS filename
+# @in test_output_dirty/*.json @AS failed_ids_files
+# @out NYPL-menus-clean/*.csv @AS output_files
 import argparse
 import json
 import os
 import pandas as pd
 from datetime import datetime
-# @end imports
 
 # @begin load_data
 # @in file_path
@@ -13,11 +15,7 @@ def load_data(file_path):
     return pd.read_csv(file_path)
 # @end load_data
 
-# @begin try_parse_date
-# @in dt
-# @in date_str
-# @in format
-# @out parsed_date
+
 def try_parse_date(dt, date_str, format):
     if (dt is None):
         try:
@@ -26,13 +24,12 @@ def try_parse_date(dt, date_str, format):
             return None
     else:
         return dt
-# @end try_parse_date
 
-# @begin clamp_year
-# @in date_str
-# @out clamped_date
+
+
 def clamp_year(date_str):
     date_str = str(date_str)
+
     dt = try_parse_date(None, date_str,'%Y-%m-%d')
     dt = try_parse_date(dt, date_str,'%Y/%m/%d')
     dt = try_parse_date(dt, date_str,'%Y-%m')
@@ -43,7 +40,7 @@ def clamp_year(date_str):
         return ''
     dt = dt.replace(year=min(2025, max(1500, dt.year)))
     return dt.strftime('%Y-%m-%d')
-# @end clamp_year
+
 
 # @begin clean_data
 # @in df
@@ -51,9 +48,13 @@ def clamp_year(date_str):
 # @in failed_ids_files
 # @out cleaned_df
 def clean_data(df, filename, failed_ids_files):
+    # @begin remove_zero_ids
+    # @in df
+    # @out df_1
     if 'id' in df.columns:
         df = df[df['id'] != 0]
         df = df.drop_duplicates(subset=['id'])
+    # @end remove_zero_ids
 
     if filename.startswith("MenuPage") and 'menu_id' in df.columns:
         df = df[df['menu_id'] != 0]
@@ -68,33 +69,56 @@ def clean_data(df, filename, failed_ids_files):
             failed_ids = json.load(f)
         if 'id' in df.columns:
             df = df[~df['id'].isin(failed_ids)]
-
+    
+    # @begin clamp_high_price
+    # @in df_1
+    # @out df_2
     if 'price' in df.columns and 'high_price' in df.columns:
         df.loc[df['high_price'] < df['price'], 'high_price'] = df['price']
-
+    # @end clamp_high_price
+    
+    # @begin clamp_updated_at
+    # @in df_2
+    # @out df_3
     if 'created_at' in df.columns and 'updated_at' in df.columns:
         df.loc[df['created_at'] > df['updated_at'], 'updated_at'] = df['created_at']
-
+    # @end clamp_updated_at
+    
+    # @begin clamp_year
+    # @in df_3
+    # @out df_4
     if 'date' in df.columns:
         df['date'] = df['date'].apply(lambda x: clamp_year(x))
-
+    # @end clamp_year
+    
+    # @begin clamp_first_appeared
+    # @in df_4
+    # @out df_5
     if 'first_appeared' in df.columns:
         df['first_appeared'] = df['first_appeared'].apply(lambda x: min(2025, max(x, 1500)))
+    # @end clamp_first_appeared
+    
+    # @begin clamp_last_appeared
+    # @in df_5
+    # @out cleaned_df
     if 'last_appeared' in df.columns:
         df['last_appeared'] = df['last_appeared'].apply(lambda x: min(2025, max(x, 1500)))
-
+    # @end clamp_last_appeared
     return df
 # @end clean_data
+
 
 # @begin save_data
 # @in cleaned_df
 # @in output_path
+# @out output_files
 def save_data(df, output_path):
     df.to_csv(output_path, index=False)
 # @end save_data
 
 # @begin get_parser
-# @out parser
+# @out file_path
+# @out output_path
 def get_parser():
     parser = argparse.ArgumentParser(description='options for cleaning')
     parser.add_argument('-i', '--inpdir', help='path to the dataset folder', type=str, default='../data/NYPL-menus')
@@ -103,10 +127,6 @@ def get_parser():
     return parser
 # @end get_parser
 
-# @begin main
-# @in NYPL-menus/*.csv
-# @in test_output_dirty/*.json
-# @out NYPL-menus-clean/*.csv
 def main():
     args = get_parser().parse_args()
     print('Configs =', args)
