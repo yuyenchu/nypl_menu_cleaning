@@ -3,9 +3,32 @@ import json
 # import numpy as np
 import os
 import pandas as pd
+from datetime import datetime
 
 def load_data(file_path):
     return pd.read_csv(file_path)
+
+def try_parse_date(dt, date_str, format):
+    if (dt is None):
+        try:
+            return datetime.strptime(date_str, format)
+        except: 
+            return None
+    else:
+        return dt
+
+def clamp_year(date_str):
+    date_str = str(date_str)
+    dt = try_parse_date(None, date_str,'%Y-%m-%d')
+    dt = try_parse_date(dt, date_str,'%Y/%m/%d')
+    dt = try_parse_date(dt, date_str,'%Y-%m')
+    dt = try_parse_date(dt, date_str,'%Y/%m')
+    dt = try_parse_date(dt, date_str,'%Y')
+    dt = try_parse_date(dt, date_str,'%Y')
+    if (dt is None):
+        return ''
+    dt = dt.replace(year=min(2025, max(1500, dt.year)))
+    return dt.strftime('%Y-%m-%d')
 
 def clean_data(df, filename, failed_ids_files):
     # Remove zero ID values and drop duplicates
@@ -36,11 +59,15 @@ def clean_data(df, filename, failed_ids_files):
     if 'created_at' in df.columns and 'updated_at' in df.columns:
         df.loc[df['created_at'] > df['updated_at'], 'updated_at'] = df['created_at']
 
+    # Fix date
+    if 'date' in df.columns:
+        df['date'] = df['date'].apply(lambda x: clamp_year(x))
+
     # Clamp years to >= 1500
     if 'first_appeared' in df.columns:
-        df['first_appeared'] = df['first_appeared'].apply(lambda x: max(x, 1500))
+        df['first_appeared'] = df['first_appeared'].apply(lambda x: min(2025, max(x, 1500)))
     if 'last_appeared' in df.columns:
-        df['last_appeared'] = df['last_appeared'].apply(lambda x: max(x, 1500))
+        df['last_appeared'] = df['last_appeared'].apply(lambda x: min(2025, max(x, 1500)))
 
     return df
 
