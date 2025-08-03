@@ -49,7 +49,7 @@ def save_data(df, output_path):
 
 def get_parser():
     # Set up command-line argument parsing
-    parser = argparse.ArgumentParser(description='options for testing')
+    parser = argparse.ArgumentParser(description='options for cleaning')
     parser.add_argument(
         '-i', '--inpdir',
         help='path to the dataset folder',

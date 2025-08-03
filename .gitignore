@@ -3,10 +3,12 @@
 keys/
 NYPL-menus/
 **/.DS_Store
+**/._.DS_Store
 **/*.npy
 **/*.txt
 **/*.sql
 **/*.json
+**/*.bak
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
