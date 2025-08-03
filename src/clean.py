@@ -1,7 +1,8 @@
-import pandas as pd
-import numpy as np
+import argparse
 import json
+# import numpy as np
 import os
+import pandas as pd
 
 def load_data(file_path):
     return pd.read_csv(file_path)
@@ -46,11 +47,38 @@ def clean_data(df, filename, failed_ids_files):
 def save_data(df, output_path):
     df.to_csv(output_path, index=False)
 
+def get_parser():
+    # Set up command-line argument parsing
+    parser = argparse.ArgumentParser(description='options for testing')
+    parser.add_argument(
+        '-i', '--inpdir',
+        help='path to the dataset folder',
+        type=str,
+        default='../data/NYPL-menus',  # Default dataset path
+    )
+    parser.add_argument(
+        '-o', '--outdir',
+        help='path to the output directory',
+        type=str,
+        default='../data//NYPL-menus-clean', 
+    )
+    parser.add_argument(
+        '-t', '--testdir',
+        help='path to the test results directory',
+        type=str,
+        default='../data/test_output_dirty', 
+    )
+
+    return parser
+
 # if you want to run this on your local maschine, please change the input_folder, test_folder and output_folder to your local path
 def main():
-    input_folder = '/Users/xian_zhao/Desktop/cs513/NYPL-menus'
-    output_folder = '/Users/xian_zhao/Desktop/cs513/cleaned_data'
-    test_folder = '/Users/xian_zhao/Desktop/cs513/test_output_dirty'
+    args = get_parser().parse_args()
+    print('Configs =', args)
+
+    input_folder = args.inpdir
+    output_folder = args.outdir
+    test_folder = args.testdir
 
     # if the output folder does not exist, create it
     os.makedirs(output_folder, exist_ok=True)
