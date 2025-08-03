@@ -140,7 +140,7 @@ class SQLTestCase(unittest.TestCase):
         cls.engine = ENGINE
         cls.logger = logger
         cls.logger.info(f'===> {MAGENTA}{cls.__name__}{RESET} <===, {cls.output_dir}')
-        setup_query_logger(cls.engine, os.path.join(cls.output_dir, 'queries.txt'))
+        setup_query_logger(cls.engine, os.path.join(cls.output_dir, f'queries_{cls.__name__}.txt'))
         cls.clsStartTime = time.time()
         cls.failedIds = dict()
 

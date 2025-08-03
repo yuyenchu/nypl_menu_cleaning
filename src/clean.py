@@ -4,6 +4,7 @@
 # @out NYPL-menus-clean/*.csv @AS output_files
 import argparse
 import json
+# import numpy as np
 import os
 import pandas as pd
 from datetime import datetime
@@ -41,6 +42,27 @@ def clamp_year(date_str):
     dt = dt.replace(year=min(2025, max(1500, dt.year)))
     return dt.strftime('%Y-%m-%d')
 
+def try_parse_date(dt, date_str, format):
+    if (dt is None):
+        try:
+            return datetime.strptime(date_str, format)
+        except: 
+            return None
+    else:
+        return dt
+
+def clamp_year(date_str):
+    date_str = str(date_str)
+    dt = try_parse_date(None, date_str,'%Y-%m-%d')
+    dt = try_parse_date(dt, date_str,'%Y/%m/%d')
+    dt = try_parse_date(dt, date_str,'%Y-%m')
+    dt = try_parse_date(dt, date_str,'%Y/%m')
+    dt = try_parse_date(dt, date_str,'%Y')
+    dt = try_parse_date(dt, date_str,'%Y')
+    if (dt is None):
+        return ''
+    dt = dt.replace(year=min(2025, max(1500, dt.year)))
+    return dt.strftime('%Y-%m-%d')
 
 # @begin clean_data
 # @in df

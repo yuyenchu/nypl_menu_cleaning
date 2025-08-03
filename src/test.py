@@ -145,30 +145,31 @@ if __name__ == "__main__":
             if (table_name in reset_tables):
                 insert_data(f, ENGINE, args.outdir, logger)
     
-    # loading testcases
-    suite = load_selected_tests(args.tests, args.outdir)
-    runner = LoggerTestRunner(logger, verbosity=2)
-    logger.info('        Starting Test')
-    logger.info('='*60, extra={'simple': True})
-    startTime = time.perf_counter()
-    # pytest_args = ['-v', '-s'] + load_pytest_args(args.tests)
-    try:
-        result = runner.run(suite)
-        # result = pytest.main(pytest_args)
-    except KeyboardInterrupt:
-        logger.warning('Test run interrupted by KeyboardInterrupt')
-        exit()
-    stopTime = time.perf_counter()
-    timeTaken = stopTime - startTime
-    success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
-    # print summary
-    logger.info('        Final Result')
-    logger.info('='*70, extra={'simple': True})
-    logger.info(f'Tests run: {result.testsRun}')
-    logger.info(f'Success: {GREEN}{success_count}{RESET}')
-    logger.info(f'Failure: {RED}{fail_count}{RESET}')
-    logger.info(f'Errors: {RED}{error_count}{RESET}')
-    logger.info(f'Pass Rate: {(success_count/result.testsRun*100):.2f}%')
-    logger.info(f'Total Runtime: {timeTaken:.4f}s')
-    logger.info('='*70, extra={'simple': True})
-    logger.info('\n', extra={'simple': True})
+    if (len(args.tests)>0):
+        # loading testcases
+        suite = load_selected_tests(args.tests, args.outdir)
+        runner = LoggerTestRunner(logger, verbosity=2)
+        logger.info('        Starting Test')
+        logger.info('='*60, extra={'simple': True})
+        startTime = time.perf_counter()
+        # pytest_args = ['-v', '-s'] + load_pytest_args(args.tests)
+        try:
+            result = runner.run(suite)
+            # result = pytest.main(pytest_args)
+        except KeyboardInterrupt:
+            logger.warning('Test run interrupted by KeyboardInterrupt')
+            exit()
+        stopTime = time.perf_counter()
+        timeTaken = stopTime - startTime
+        success_count, fail_count, error_count = len(result.success), len(result.failures), len(result.errors)
+        # print summary
+        logger.info('        Final Result')
+        logger.info('='*70, extra={'simple': True})
+        logger.info(f'Tests run: {result.testsRun}')
+        logger.info(f'Success: {GREEN}{success_count}{RESET}')
+        logger.info(f'Failure: {RED}{fail_count}{RESET}')
+        logger.info(f'Errors: {RED}{error_count}{RESET}')
+        logger.info(f'Pass Rate: {(success_count/result.testsRun*100):.2f}%')
+        logger.info(f'Total Runtime: {timeTaken:.4f}s')
+        logger.info('='*70, extra={'simple': True})
+        logger.info('\n', extra={'simple': True})

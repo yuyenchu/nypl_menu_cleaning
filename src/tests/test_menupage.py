@@ -3,19 +3,23 @@ from sqlalchemy import func
 from .test_base import SQLTestCase, MenuPage
 
 class TestMenuPageNumberValid(SQLTestCase):
+    ### Check MenuPage.page_number has no negative values
     def test_page_number(self):
         res1 = self.session.query(MenuPage).filter(MenuPage.page_number < 0).all()
         self.assertEmpty(res1, 'Found MenuPage rows with page_number less than 0')
 
+    ### Check MenuPage.full_height has no negative values
     def test_full_height(self):
         res1 = self.session.query(MenuPage).filter(MenuPage.full_height < 0).all()
         self.assertEmpty(res1, 'Found MenuPage rows with full_height less than 0')
 
+    ### Check MenuPage.full_width has no negative values
     def test_full_width(self):
         res1 = self.session.query(MenuPage).filter(MenuPage.full_width < 0).all()
         self.assertEmpty(res1, 'Found MenuPage rows with full_width less than 0')
 
 class TestMenuPageDuplicate(SQLTestCase):
+    ### Check MenuPage.uuid has no duplicates
     def test_uuid(self):
         res1 = (
             self.session.query(MenuPage.uuid)
@@ -31,6 +35,7 @@ class TestMenuPageDuplicate(SQLTestCase):
 
         self.assertEmpty(res2, 'Found MenuPage rows with duplicated uuid')
     
+    ### Check MenuPage.page_number has no duplicates when linked to the same MenuPage.menu_id
     def test_menu_id_page_number(self):
         res1 = (
             self.session.query(MenuPage.menu_id, MenuPage.page_number)
@@ -47,4 +52,4 @@ class TestMenuPageDuplicate(SQLTestCase):
             )
             .all()
         )
-        self.assertEmpty(res2, 'Found MenuItem rows with created_at later than updated_at')
+        self.assertEmpty(res2, 'Found MenuPage rows with duplicated page_number within same Menu')

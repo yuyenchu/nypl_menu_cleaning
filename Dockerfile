@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     sudo \
     unzip \
+    default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Create user
