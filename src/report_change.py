@@ -3,29 +3,39 @@ import glob
 import os
 import pandas as pd
 
+from test import get_logger
 
 def get_change(dirty_df, clean_df):
     # Set 'id' as the index for easy comparison
     dirty_df.set_index('id', inplace=True)
     clean_df.set_index('id', inplace=True)
 
-    # Align both DataFrames to ensure they have the same index order
-    dirty_df = dirty_df.sort_index()
-    clean_df = clean_df.sort_index()
+    # Find common ids (present in both dirty and clean data)
+    common_ids = dirty_df.index.intersection(clean_df.index)
 
-    # Compare dataframes to find changed cells
-    changes = dirty_df != clean_df
+    # Find removed ids (present in dirty, not in clean)
+    removed_ids = dirty_df.index.difference(clean_df.index)
 
-    # Count total number of changed cells
+    # Subset dataframes to common ids for cell comparison
+    dirty_common = dirty_df.loc[common_ids].sort_index()
+    clean_common = clean_df.loc[common_ids].sort_index()
+
+    # Boolean DataFrame of cell-level changes
+    changes = dirty_common != clean_common
+
+    # Count cell changes only in common rows
     total_changed_cells = changes.sum().sum()
 
-    # Count number of rows that have at least one change
-    rows_with_changes = changes.any(axis=1).sum()
+    # Count rows with changes in common rows
+    rows_with_cell_changes = changes.any(axis=1).sum()
 
-    # Count changes per column
+    # Add count of removed rows to total changed rows
+    total_changed_rows = rows_with_cell_changes + len(removed_ids)
+
+    # Count per-column cell changes
     column_change_counts = changes.sum()
 
-    return total_changed_cells, rows_with_changes, column_change_counts
+    return total_changed_cells, total_changed_rows, rows_with_cell_changes, removed_ids, column_change_counts
 
 def get_parser():
     # Set up command-line argument parsing
@@ -57,6 +67,7 @@ if __name__=='__main__':
     # make output folder
     os.makedirs(args.outdir, exist_ok=True)
     assert os.path.isdir(args.outdir), f'output path does not exist or is not directory: {args.outdir}'
+    logger = get_logger(os.path.join(args.outdir, 'report_change.log'))
 
     for clean_f in glob.glob(os.path.join(args.cleandir, '*.csv')):
         fn = os.path.basename(clean_f)
@@ -67,13 +78,17 @@ if __name__=='__main__':
             # Load the dirty and cleaned data files
             dirty_df = pd.read_csv(dirty_f)
             clean_df = pd.read_csv(clean_f)
-            total_changed_cells, rows_with_changes, column_change_counts = get_change(dirty_df, clean_df)
-            print(f'Filename: {fn}')
+            total_changed_cells, total_changed_rows, rows_with_cell_changes, removed_ids, column_change_counts = get_change(dirty_df, clean_df)
+            logger.info('='*70, extra={'simple': True})
+            logger.info(f'Filename: {fn}', extra={'simple': True})
             # Display the results
-            print(f"Total changed cells: {total_changed_cells}")
-            print(f"Total rows with changes: {rows_with_changes}")
-            print("\nChanged cells per column:")
-            print(column_change_counts)
+            logger.info(f"Total changed rows (modified + removed): {total_changed_rows}", extra={'simple': True})
+            logger.info(f" - Modified rows: {rows_with_cell_changes}", extra={'simple': True})
+            logger.info(f" - Removed rows: {len(removed_ids)}", extra={'simple': True})
+            logger.info(f"Total changed cells (excluding removed rows): {total_changed_cells}", extra={'simple': True})
+            logger.info("\nChanged cells per column:", extra={'simple': True})
+            logger.info(column_change_counts, extra={'simple': True})
+            logger.info('\n', extra={'simple': True})
 
             # Optionally save column-level change counts to a CSV
-            column_change_counts.to_csv(f'changed_count_{fn}', header=['changed_cells'])
+            column_change_counts.to_csv(os.path.join(args.outdir, f'changed_{fn}'), header=['changed_cells'])
